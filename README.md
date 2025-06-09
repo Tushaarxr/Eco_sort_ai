@@ -1,50 +1,47 @@
-# Welcome to your Expo app 👋
+# ♻️ EcoSort AI: E-Waste Management Assistant
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+EcoSort AI is a smart mobile application designed to tackle the rising problem of electronic waste by using AI and real-time geolocation services. It helps users identify different types of e-waste, guides them on proper disposal methods, and navigates them to nearby certified recycling centers.
 
-## Get started
+---
 
-1. Install dependencies
+## 🚀 Features
 
+- 🔍 **AI-Powered Waste Recognition**: Uses Google's Gemini API to classify devices such as batteries, mobile phones, and electronic appliances.
+- 📍 **Geolocation Integration**: Recommends nearby certified recycling centers based on the user's current location.
+- 📚 **Awareness & Guidance**: Educates users on e-waste disposal practices, environmental impact, and safe handling procedures.
+- ☁️ **Firebase Backend**: Real-time data handling, authentication, and cloud functions.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Flutter / React Native (based on implementation)
+- **Backend**: Firebase (Authentication, Firestore, Realtime DB)
+- **AI Integration**: Google Gemini API
+- **Geolocation**: Google Maps API / Geolocator package
+- **Storage**: Firebase Storage
+
+---
+
+## 📱 Screenshots
+
+> (Insert relevant app screenshots or mockups here for better understanding)
+
+---
+
+## 🧠 How It Works
+
+1. User uploads or scans an image of the e-waste.
+2. Gemini API classifies the item using AI models.
+3. Firebase stores classification results and user data securely.
+4. The app fetches and displays the nearest recycling centers using geolocation.
+5. User receives guidance on safe disposal methods for that item.
+
+---
+
+## 🔧 Setup & Installation
+
+1. **Clone the repository**
    ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-    npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
-```
-
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+   git clone https://github.com/Tushaarxr/ecosort-ai.git
+   cd ecosort-ai
