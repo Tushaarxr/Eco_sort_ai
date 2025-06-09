@@ -23,12 +23,6 @@ EcoSort AI is a smart mobile application designed to tackle the rising problem o
 
 ---
 
-## 📱 Screenshots
-
-> (Insert relevant app screenshots or mockups here for better understanding)
-
----
-
 ## 🧠 How It Works
 
 1. User uploads or scans an image of the e-waste.
