@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, FlatList, Image, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { View, StyleSheet, ScrollView, FlatList, TouchableOpacity } from 'react-native';
 import { Text, Card, Button, Avatar, Divider, ActivityIndicator, List } from 'react-native-paper';
 import { useAuth } from '../../hooks/useAuth';
 import { getUserScans } from '../../api/firebaseService';
@@ -18,33 +18,26 @@ const ProfileScreen = () => {
   });
   const navigation = useNavigation();
 
-  useEffect(() => {
-    fetchUserData();
-  }, []);
-
-  const fetchUserData = async () => {
+  const fetchUserData = useCallback(async () => {
     try {
       setLoading(true);
-      const userScans = await getUserScans(user.uid);
+      const { scans: userScans } = await getUserScans(user.uid);
       setScans(userScans);
       
-      // Calculate stats
       const itemCount = {};
       const hazardCount = { Low: 0, Medium: 0, High: 0 };
       
-      userScans.forEach(scan => {
-        // Count item types
+      userScans.forEach((scan) => {
         const itemType = scan.itemType || scan.type || 'Unknown';
         itemCount[itemType] = (itemCount[itemType] || 0) + 1;
         
-        // Count hazard levels
-        const hazardLevel = scan.hazardLevel || 'Unknown';
-        if (hazardLevel in hazardCount) {
-          hazardCount[hazardLevel]++;
+        const hazard = (scan.hazardLevel || 'unknown').toLowerCase();
+        const hazardKey = hazard.charAt(0).toUpperCase() + hazard.slice(1);
+        if (hazardKey in hazardCount) {
+          hazardCount[hazardKey]++;
         }
       });
       
-      // Find most scanned item
       let mostScannedItem = null;
       let maxCount = 0;
       
@@ -66,7 +59,11 @@ const ProfileScreen = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user]);
+
+  useEffect(() => {
+    fetchUserData();
+  }, [fetchUserData]);
 
   const handleLogout = async () => {
     try {
@@ -87,7 +84,7 @@ const ProfileScreen = () => {
       <Card.Content>
         <Text style={styles.scanType}>{item.itemType || item.type || 'Unknown Item'}</Text>
         <Text style={styles.scanDate}>
-          {new Date(item.timestamp?.toDate()).toLocaleString()}
+          {item.timestamp ? new Date(item.timestamp).toLocaleString() : 'Unknown date'}
         </Text>
         
         <View style={styles.hazardView}>
@@ -177,7 +174,7 @@ const ProfileScreen = () => {
       ) : (
         <Card style={styles.emptyCard}>
           <Card.Content>
-            <Text style={styles.emptyText}>You haven't scanned any items yet.</Text>
+            <Text style={styles.emptyText}>You have not scanned any items yet.</Text>
             <Button
               mode="contained"
               icon="camera"

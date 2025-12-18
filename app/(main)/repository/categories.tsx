@@ -42,6 +42,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
       name: 'iPhone',
       description: 'Apple smartphone with lithium battery and glass screen.',
       category: 'Smartphones',
+      categoryId: 'cat1',
       materials: ['Glass', 'Aluminum', 'Lithium Battery', 'Circuit Board'],
       hazardLevel: 'Medium',
       disposalInstructions: [
@@ -50,6 +51,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
         'Take to an electronics recycling center or Apple Store',
         'Many retailers offer trade-in programs for credit toward new devices'
       ],
+      keywords: ['iphone', 'smartphone', 'apple', 'mobile', 'cell phone'],
       imageUrl: 'https://images.unsplash.com/photo-1556656793-08538906a9f8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80'
     },
     {
@@ -57,6 +59,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
       name: 'Samsung Galaxy',
       description: 'Android smartphone with OLED display and removable components.',
       category: 'Smartphones',
+      categoryId: 'cat1',
       materials: ['Plastic', 'Glass', 'Lithium Battery', 'Circuit Board'],
       hazardLevel: 'Medium',
       disposalInstructions: [
@@ -65,6 +68,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
         'Take to an electronics recycling center or Samsung Store',
         'Check if your local municipality has e-waste collection events'
       ],
+      keywords: ['samsung', 'galaxy', 'android', 'smartphone', 'mobile'],
       imageUrl: 'https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80'
     }
   ],
@@ -74,6 +78,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
       name: 'Laptop',
       description: 'Portable computer with screen, keyboard, and internal components.',
       category: 'Computers',
+      categoryId: 'cat2',
       materials: ['Plastic', 'Aluminum', 'Lithium Battery', 'Circuit Board', 'LCD Screen'],
       hazardLevel: 'Medium',
       disposalInstructions: [
@@ -82,6 +87,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
         'Take to an electronics recycling center',
         'Some manufacturers offer take-back programs'
       ],
+      keywords: ['laptop', 'notebook', 'computer', 'portable', 'battery'],
       imageUrl: 'https://images.unsplash.com/photo-1496181133206-80ce9b88a853?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80'
     },
     {
@@ -89,6 +95,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
       name: 'Desktop Computer',
       description: 'Full-sized computer with separate components and peripherals.',
       category: 'Computers',
+      categoryId: 'cat2',
       materials: ['Plastic', 'Metal', 'Circuit Board', 'Wiring'],
       hazardLevel: 'Medium',
       disposalInstructions: [
@@ -97,6 +104,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
         'Take to an electronics recycling center',
         'Some parts may be valuable for scrap metal recycling'
       ],
+      keywords: ['desktop', 'pc', 'computer', 'tower', 'workstation'],
       imageUrl: 'https://images.unsplash.com/photo-1547082299-de196ea013d6?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80'
     }
   ],
@@ -106,6 +114,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
       name: 'Lithium-Ion Battery',
       description: 'Rechargeable battery used in portable electronics and electric vehicles.',
       category: 'Batteries',
+      categoryId: 'cat3',
       materials: ['Lithium', 'Cobalt', 'Nickel', 'Plastic'],
       hazardLevel: 'High',
       disposalInstructions: [
@@ -114,6 +123,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
         'Take to a battery recycling center or hazardous waste facility',
         'Many electronics retailers offer battery recycling services'
       ],
+      keywords: ['battery', 'lithium-ion', 'rechargeable', 'power', 'cells'],
       imageUrl: 'https://images.unsplash.com/photo-1620714223084-8fcacc6dfd8d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2071&q=80'
     },
     {
@@ -121,6 +131,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
       name: 'Alkaline Battery',
       description: 'Common single-use battery used in household devices.',
       category: 'Batteries',
+      categoryId: 'cat3',
       materials: ['Zinc', 'Manganese Dioxide', 'Potassium Hydroxide', 'Steel'],
       hazardLevel: 'Low',
       disposalInstructions: [
@@ -129,6 +140,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
         'Prefer to take to battery recycling drop-off points',
         'Consider switching to rechargeable alternatives'
       ],
+      keywords: ['battery', 'alkaline', 'single-use', 'household', 'AA', 'AAA'],
       imageUrl: 'https://images.unsplash.com/photo-1612958789638-e129f4bf31fd?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80'
     }
   ],
@@ -138,6 +150,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
       name: 'Refrigerator',
       description: 'Large appliance for cooling and preserving food.',
       category: 'Appliances',
+      categoryId: 'cat4',
       materials: ['Metal', 'Plastic', 'Refrigerant Chemicals', 'Insulation', 'Copper'],
       hazardLevel: 'High',
       disposalInstructions: [
@@ -146,6 +159,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
         'Look for appliance recycling programs in your area',
         'Some retailers offer haul-away service when purchasing new appliances'
       ],
+      keywords: ['appliance', 'fridge', 'refrigerator', 'cooling', 'freon'],
       imageUrl: 'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80'
     },
     {
@@ -153,6 +167,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
       name: 'Microwave Oven',
       description: 'Kitchen appliance that cooks food using electromagnetic radiation.',
       category: 'Appliances',
+      categoryId: 'cat4',
       materials: ['Metal', 'Plastic', 'Circuit Board', 'Glass', 'Wiring'],
       hazardLevel: 'Medium',
       disposalInstructions: [
@@ -161,6 +176,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
         'Some retailers and manufacturers offer take-back programs',
         'Check if your local waste management offers special collection'
       ],
+      keywords: ['appliance', 'microwave', 'oven', 'kitchen', 'electronics'],
       imageUrl: 'https://images.unsplash.com/photo-1574269909862-7e1d70bb8078?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1976&q=80'
     }
   ],
@@ -170,6 +186,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
       name: 'USB Cables',
       description: 'Cables used to connect and charge electronic devices.',
       category: 'Cables',
+      categoryId: 'cat5',
       materials: ['Copper', 'Plastic', 'Rubber', 'Gold Plating'],
       hazardLevel: 'Low',
       disposalInstructions: [
@@ -178,6 +195,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
         'Some office supply stores accept cables for recycling',
         'Consider donating working cables to schools or charities'
       ],
+      keywords: ['cable', 'usb', 'charging', 'data cable', 'connector'],
       imageUrl: 'https://images.unsplash.com/photo-1605464315542-bda3e2f4e605?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80'
     },
     {
@@ -185,6 +203,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
       name: 'Power Cords',
       description: 'Cables that connect devices to power outlets.',
       category: 'Cables',
+      categoryId: 'cat5',
       materials: ['Copper', 'Plastic', 'Rubber', 'PVC'],
       hazardLevel: 'Low',
       disposalInstructions: [
@@ -193,6 +212,7 @@ const HARDCODED_ITEMS: Record<string, EWasteItem[]> = {
         'Cut cords from unusable appliances before disposal',
         'Some scrap metal recyclers accept power cords for their copper content'
       ],
+      keywords: ['cable', 'power cord', 'ac cable', 'plug', 'wire'],
       imageUrl: 'https://images.unsplash.com/photo-1601524909162-ae8725290836?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1974&q=80'
     }
   ]

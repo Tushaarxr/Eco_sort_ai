@@ -11,6 +11,7 @@ import SearchScreen from '../components/repository/SearchScreen';
 import CategoryBrowserScreen from '../components/repository/CategoryBrowserScreen';
 import ProfileScreen from '../components/profile/ProfileScreen';
 import { ROUTES } from '../constants/routes';
+import FirebaseTestScreen from '../components/FirebaseTestScreen';
 
 const Tab = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -18,6 +19,7 @@ const Stack = createStackNavigator();
 // Stack navigators for each main section
 const ScanningStack = () => (
   <Stack.Navigator>
+    <Stack.Screen name="FirebaseTest" component={FirebaseTestScreen} />
     <Stack.Screen name={ROUTES.CAMERA} component={CameraScreen} options={{ headerShown: false }} />
     <Stack.Screen name={ROUTES.RESULT} component={ResultScreen} options={{ title: 'Analysis Results' }} />
     <Stack.Screen name={ROUTES.DISPOSAL_GUIDE} component={DisposalGuideScreen} options={{ title: 'Disposal Guide' }} />

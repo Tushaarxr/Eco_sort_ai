@@ -5,99 +5,35 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { COLORS } from '../../../src/styles/colors';
 import { RecyclingCenter } from '../../../src/types';
-
-// Hardcoded recycling centers in Chennai
-const CHENNAI_RECYCLING_CENTERS: RecyclingCenter[] = [
-  {
-    id: '1',
-    name: 'Earth Sense Recycle',
-    address: '15, Bazullah Rd, T. Nagar, Chennai, Tamil Nadu 600017',
-    acceptsItems: ['Electronics', 'Batteries', 'Computers', 'Phones'],
-    distance: 3.2,
-    phoneNumber: '+91 44 4212 7070',
-    website: 'https://www.earthsenserecycle.com',
-    operatingHours: 'Mon-Sat: 9:00 AM - 6:00 PM',
-    
-  },
-  {
-    id: '2',
-    name: 'Eco Birdd E-Waste Recyclers',
-    address: 'No.1, Vellalar Street, Mogappair East, Chennai, Tamil Nadu 600037',
-    acceptsItems: ['Electronics', 'Computers', 'Phones', 'Appliances'],
-    distance: 7.5,
-    phoneNumber: '+91 95000 55000',
-    website: 'https://www.ecobirdd.com',
-    operatingHours: 'Mon-Sat: 10:00 AM - 7:00 PM',
-    
-  },
-  {
-    id: '3',
-    name: 'Green Era Recyclers',
-    address: 'Plot No. 5, Sidco Industrial Estate, Ambattur, Chennai, Tamil Nadu 600098',
-    acceptsItems: ['Electronics', 'Batteries', 'Computers', 'Phones', 'Appliances'],
-    distance: 12.3,
-    phoneNumber: '+91 44 2686 1010',
-    website: 'https://www.greenerarecyclers.com',
-    operatingHours: 'Mon-Fri: 9:00 AM - 5:30 PM, Sat: 9:00 AM - 1:00 PM',
-   
-  },
-  {
-    id: '4',
-    name: 'Trishyiraya Recycling India',
-    address: 'No. 53, Greams Road, Thousand Lights, Chennai, Tamil Nadu 600006',
-    acceptsItems: ['Electronics', 'Batteries', 'Computers'],
-    distance: 5.1,
-    phoneNumber: '+91 44 2829 1765',
-    operatingHours: 'Mon-Sat: 10:00 AM - 6:00 PM',
-   
-  },
-  {
-    id: '5',
-    name: 'Virogreen India',
-    address: 'No. 8, 1st Main Road, OMR, Thoraipakkam, Chennai, Tamil Nadu 600097',
-    acceptsItems: ['Electronics', 'Batteries', 'Computers', 'Phones', 'Appliances'],
-    distance: 15.7,
-    phoneNumber: '+91 44 4850 0606',
-    website: 'https://www.virogreen.in',
-    operatingHours: 'Mon-Sat: 9:30 AM - 6:30 PM',
-    
-  },
-  {
-    id: '6',
-    name: 'E-Parisaraa',
-    address: 'No. 46, 2nd Floor, Nelson Manickam Road, Chennai, Tamil Nadu 600029',
-    acceptsItems: ['Electronics', 'Computers', 'Phones'],
-    distance: 6.8,
-    phoneNumber: '+91 44 2374 1250',
-    website: 'https://www.ewasteindia.com',
-    operatingHours: 'Mon-Fri: 9:00 AM - 5:00 PM',
-    
-  },
-  {
-    id: '7',
-    name: 'Chennai Municipal Corporation E-Waste Collection Center',
-    address: 'Ripon Building, EVK Sampath Road, Chennai, Tamil Nadu 600003',
-    acceptsItems: ['Electronics', 'Batteries', 'Computers', 'Phones', 'Appliances'],
-    distance: 4.3,
-    phoneNumber: '+91 44 2536 7853',
-    operatingHours: 'Mon-Sat: 8:00 AM - 4:00 PM',
-    
-  }
-];
+import { getRecyclingCenters } from '../../../src/api/supabaseService';
+import { useSupabase } from '../../../src/hooks/useSupabase';
+import { useRecyclingCentersCache } from '../../../src/hooks/useOfflineCache';
 
 export default function RecyclingCentersScreen() {
-  const [centers, setCenters] = useState<RecyclingCenter[]>([]);
   const [filteredCenters, setFilteredCenters] = useState<RecyclingCenter[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [locationPermission, setLocationPermission] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedFilter, setSelectedFilter] = useState<string>('All');
+  const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number } | null>(null);
+  const supabaseClient = useSupabase();
+
+  // Use offline cache hook for recycling centers
+  const {
+    recyclingCenters: centers,
+    isLoadingCenters: loading,
+    error,
+    loadCachedCenters: refreshCenters,
+    isOnline
+  } = useRecyclingCentersCache(userLocation ? { lat: userLocation.latitude, lng: userLocation.longitude } : undefined);
 
   useEffect(() => {
     checkLocationPermission();
-    // Use hardcoded data instead of fetching
-    loadHardcodedCenters();
+    refreshCenters();
   }, []);
+
+  useEffect(() => {
+    setFilteredCenters(centers);
+  }, [centers]);
 
   const checkLocationPermission = async (): Promise<void> => {
     try {
@@ -109,14 +45,28 @@ export default function RecyclingCentersScreen() {
     }
   };
 
-  const loadHardcodedCenters = (): void => {
-    // Simulate loading for better UX
-    setTimeout(() => {
-      setCenters(CHENNAI_RECYCLING_CENTERS);
-      setFilteredCenters(CHENNAI_RECYCLING_CENTERS);
-      setLoading(false);
-    }, 1000);
+  const loadRecyclingCenters = async (): Promise<void> => {
+    try {
+      let location = null;
+      if (locationPermission) {
+        try {
+          const loc = await Location.getCurrentPositionAsync({});
+          location = { latitude: loc.coords.latitude, longitude: loc.coords.longitude };
+          setUserLocation(location);
+        } catch (e) {
+          console.log("Could not get location", e);
+        }
+      }
+
+      const centersData = await getRecyclingCenters(supabaseClient, location || undefined);
+      setFilteredCenters(centersData);
+    } catch (error) {
+      console.error('Error loading recycling centers:', error);
+      Alert.alert('Error', 'Failed to load recycling centers. Please try again.');
+    }
   };
+
+
 
   const openMaps = (address: string): void => {
     const formattedAddress = encodeURIComponent(address);
@@ -124,9 +74,9 @@ export default function RecyclingCentersScreen() {
       ios: `maps:0,0?q=${formattedAddress}`,
       android: `geo:0,0?q=${formattedAddress}`,
     });
-    
+
     if (!mapsUrl) return;
-    
+
     Linking.canOpenURL(mapsUrl)
       .then((supported) => {
         if (supported) {
@@ -159,22 +109,22 @@ export default function RecyclingCentersScreen() {
 
   const filterCenters = (query: string, type: string): void => {
     let filtered = centers;
-    
+
     // Filter by search query
     if (query) {
-      filtered = filtered.filter(center => 
+      filtered = filtered.filter(center =>
         center.name.toLowerCase().includes(query.toLowerCase()) ||
         center.address.toLowerCase().includes(query.toLowerCase())
       );
     }
-    
+
     // Filter by type
     if (type !== 'All') {
-      filtered = filtered.filter(center => 
+      filtered = filtered.filter(center =>
         center.acceptsItems.some(item => item.toLowerCase() === type.toLowerCase())
       );
     }
-    
+
     setFilteredCenters(filtered);
   };
 
@@ -183,7 +133,7 @@ export default function RecyclingCentersScreen() {
       <Card.Content>
         <Text style={styles.centerName}>{item.name}</Text>
         <Text style={styles.address}>{item.address}</Text>
-        
+
         {item.distance && (
           <View style={styles.distanceContainer}>
             <MaterialCommunityIcons name="map-marker-distance" size={16} color={COLORS.primary} />
@@ -192,9 +142,9 @@ export default function RecyclingCentersScreen() {
             </Text>
           </View>
         )}
-        
+
         <Divider style={styles.divider} />
-        
+
         <Text style={styles.acceptsTitle}>Accepts:</Text>
         <View style={styles.chipsContainer}>
           {item.acceptsItems.map((acceptedItem, index) => (
@@ -203,37 +153,37 @@ export default function RecyclingCentersScreen() {
             </Chip>
           ))}
         </View>
-        
+
         {item.operatingHours && (
           <Text style={styles.hours}>Hours: {item.operatingHours}</Text>
         )}
       </Card.Content>
-      
+
       <Card.Actions style={styles.actions}>
-        <Button 
-          mode="contained" 
-          icon="directions" 
+        <Button
+          mode="contained"
+          icon="directions"
           onPress={() => openMaps(item.address)}
           style={styles.actionButton}
         >
           Directions
         </Button>
-        
+
         {item.phoneNumber && (
-          <Button 
-            mode="outlined" 
-            icon="phone" 
+          <Button
+            mode="outlined"
+            icon="phone"
             onPress={() => item.phoneNumber && callCenter(item.phoneNumber)}
             style={styles.actionButton}
           >
             Call
           </Button>
         )}
-        
+
         {item.website && (
-          <Button 
-            mode="outlined" 
-            icon="web" 
+          <Button
+            mode="outlined"
+            icon="web"
             onPress={() => item.website && visitWebsite(item.website)}
             style={styles.actionButton}
           >
@@ -252,7 +202,7 @@ export default function RecyclingCentersScreen() {
         value={searchQuery}
         style={styles.searchbar}
       />
-      
+
       <View style={styles.filterContainer}>
         <Text style={styles.filterLabel}>Filter by type:</Text>
         <FlatList
@@ -273,16 +223,19 @@ export default function RecyclingCentersScreen() {
           contentContainerStyle={styles.filterList}
         />
       </View>
-      
+
       {!locationPermission && (
         <Card style={styles.warningCard}>
           <Card.Content>
             <Text style={styles.warningText}>
-              Location permission not granted. Showing Chennai recycling centers.
+              Location permission not granted. Showing all recycling centers without distance calculation.
             </Text>
-            <Button 
-              mode="contained" 
-              onPress={checkLocationPermission}
+            <Button
+              mode="contained"
+              onPress={async () => {
+                await checkLocationPermission();
+                loadRecyclingCenters();
+              }}
               style={styles.permissionButton}
             >
               Grant Permission
@@ -290,11 +243,11 @@ export default function RecyclingCentersScreen() {
           </Card.Content>
         </Card>
       )}
-      
+
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Finding recycling centers in Chennai...</Text>
+          <Text style={styles.loadingText}>Finding recycling centers near you...</Text>
         </View>
       ) : (
         <FlatList
@@ -307,8 +260,8 @@ export default function RecyclingCentersScreen() {
               <Text style={styles.emptyText}>
                 No recycling centers found matching your criteria.
               </Text>
-              <Button 
-                mode="outlined" 
+              <Button
+                mode="outlined"
                 onPress={() => {
                   setSearchQuery('');
                   setSelectedFilter('All');

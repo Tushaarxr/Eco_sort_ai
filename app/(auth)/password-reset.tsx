@@ -1,38 +1,84 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { TextInput, Button, Text, HelperText, Snackbar } from 'react-native-paper';
-import { router } from 'expo-router';
-import { useAuth } from '../../src/hooks/useAuth';
+import { TextInput, Button, Text, HelperText } from 'react-native-paper';
+import { useRouter } from 'expo-router';
+import { useSignIn } from '@clerk/clerk-expo';
 import { COLORS } from '../../src/styles/colors';
-import { FirebaseError } from 'firebase/app';
 
 export default function PasswordResetScreen() {
-  const { resetPassword } = useAuth();
-  
+  const { isLoaded, signIn, setActive } = useSignIn();
+  const router = useRouter();
+
   const [email, setEmail] = useState<string>('');
+  const [password, setPassword] = useState<string>('');
+  const [code, setCode] = useState<string>('');
+  const [successfulCreation, setSuccessfulCreation] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [showSuccessMessage, setShowSuccessMessage] = useState<boolean>(false);
 
-  const handlePasswordReset = async () => {
+  // Step 1: Request password reset code
+  const sendResetCode = async () => {
+    if (!isLoaded) return;
+
     if (!email) {
       setError('Please enter your email address');
       return;
     }
-    
+
     try {
       setLoading(true);
       setError('');
-      await resetPassword(email);
-      setShowSuccessMessage(true);
-    } catch (error) {
-      let errorMessage = 'Failed to send reset email. Please try again.';
-      if ((error as FirebaseError).code === 'auth/user-not-found') {
-        errorMessage = 'No account found with this email';
-      } else if ((error as FirebaseError).code === 'auth/invalid-email') {
-        errorMessage = 'Please enter a valid email';
+
+      await signIn.create({
+        strategy: 'reset_password_email_code',
+        identifier: email,
+      });
+
+      setSuccessfulCreation(true);
+    } catch (err: any) {
+      console.error(JSON.stringify(err, null, 2));
+      const message = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Failed to send reset email';
+      setError(message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Step 2: Reset password with code
+  const resetPassword = async () => {
+    if (!isLoaded) return;
+
+    if (!code || !password) {
+      setError('Please provide code and new password');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError('');
+
+      const result = await signIn.attemptFirstFactor({
+        strategy: 'reset_password_email_code',
+        code,
+        password,
+      });
+
+      if (result.status === 'complete') {
+        await setActive({ session: result.createdSessionId });
+        router.replace('/(main)/scan');
+      } else {
+        console.error(JSON.stringify(result, null, 2));
+        setError('Password reset incomplete. Please try again.');
       }
-      setError(errorMessage);
+    } catch (err: any) {
+      console.error(JSON.stringify(err, null, 2));
+      const message = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Failed to reset password';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -46,54 +92,82 @@ export default function PasswordResetScreen() {
           style={styles.icon}
           resizeMode="contain"
         />
-        
+
         <Text style={styles.title}>Reset Password</Text>
         <Text style={styles.subtitle}>
-          Enter your email address and we'll send you instructions to reset your password
+          {!successfulCreation
+            ? "Enter your email address and we'll send you a code to reset your password"
+            : `Enter the code sent to ${email} and your new password`}
         </Text>
-        
-        <TextInput
-          label="Email"
-          value={email}
-          onChangeText={setEmail}
-          mode="outlined"
-          autoCapitalize="none"
-          keyboardType="email-address"
-          style={styles.input}
-          left={<TextInput.Icon icon="email" />}
-        />
-        
-        {error ? <HelperText type="error">{error}</HelperText> : null}
-        
-        <Button
-          mode="contained"
-          onPress={handlePasswordReset}
-          loading={loading}
-          disabled={loading}
-          style={styles.button}
-        >
-          Send Reset Link
-        </Button>
-        
-        <TouchableOpacity 
-          onPress={() => router.push('/login')}
+
+        {!successfulCreation ? (
+          <>
+            <TextInput
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              mode="outlined"
+              autoCapitalize="none"
+              keyboardType="email-address"
+              style={styles.input}
+              left={<TextInput.Icon icon="email" />}
+            />
+
+            {error ? <HelperText type="error">{error}</HelperText> : null}
+
+            <Button
+              mode="contained"
+              onPress={sendResetCode}
+              loading={loading}
+              disabled={loading}
+              style={styles.button}
+            >
+              Send Reset Code
+            </Button>
+          </>
+        ) : (
+          <>
+            <TextInput
+              label="Verification Code"
+              value={code}
+              onChangeText={setCode}
+              mode="outlined"
+              keyboardType="number-pad"
+              style={styles.input}
+              left={<TextInput.Icon icon="shield-check" />}
+            />
+
+            <TextInput
+              label="New Password"
+              value={password}
+              onChangeText={setPassword}
+              mode="outlined"
+              secureTextEntry
+              style={styles.input}
+              left={<TextInput.Icon icon="lock" />}
+            />
+
+            {error ? <HelperText type="error">{error}</HelperText> : null}
+
+            <Button
+              mode="contained"
+              onPress={resetPassword}
+              loading={loading}
+              disabled={loading}
+              style={styles.button}
+            >
+              Set New Password
+            </Button>
+          </>
+        )}
+
+        <TouchableOpacity
+          onPress={() => router.push('/(auth)/login')}
           style={styles.backContainer}
         >
           <Text style={styles.backText}>Back to Sign In</Text>
         </TouchableOpacity>
       </View>
-      
-      <Snackbar
-        visible={showSuccessMessage}
-        onDismiss={() => setShowSuccessMessage(false)}
-        duration={4000}
-        action={{
-          label: 'OK',
-          onPress: () => router.push('/login'),
-        }}
-      >
-        Password reset email sent successfully!
-      </Snackbar>
     </View>
   );
 }
@@ -125,6 +199,7 @@ const styles = StyleSheet.create({
     color: '#666',
     marginBottom: 24,
     textAlign: 'center',
+    paddingHorizontal: 20,
   },
   input: {
     width: '100%',

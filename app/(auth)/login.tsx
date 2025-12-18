@@ -1,15 +1,14 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
-import { router } from 'expo-router';
-import { useAuth } from '../../src/hooks/useAuth';
+import { useRouter } from 'expo-router';
+import { useSignIn } from '@clerk/clerk-expo';
 import { COLORS } from '../../src/styles/colors';
-import { FirebaseError } from 'firebase/app';
-import NetInfo from '@react-native-community/netinfo';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
-  
+  const { signIn, setActive, isLoaded } = useSignIn();
+  const router = useRouter();
+
   const [email, setEmail] = useState<string>('');
   const [password, setPassword] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -17,49 +16,33 @@ export default function LoginScreen() {
   const [secureTextEntry, setSecureTextEntry] = useState<boolean>(true);
 
   const handleLogin = async () => {
+    if (!isLoaded) return;
+
     if (!email || !password) {
       setError('Please enter both email and password');
-      return;
-    }
-
-    // Check network connection
-    const networkState = await NetInfo.fetch();
-    if (!networkState.isConnected) {
-      setError('No internet connection');
-      return;
-    }
-
-    // Simple email validation
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError('Please enter a valid email address');
       return;
     }
 
     try {
       setLoading(true);
       setError('');
-      await login(email, password);
-      router.replace('/(main)/scan'); // Explicit navigation
-    } catch (error) {
-      let errorMessage = 'Login failed. Please try again.';
-      const firebaseError = error as FirebaseError;
-      
-      switch(firebaseError.code) {
-        case 'auth/user-not-found':
-        case 'auth/wrong-password':
-          errorMessage = 'Invalid email or password';
-          break;
-        case 'auth/invalid-email':
-          errorMessage = 'Invalid email format';
-          break;
-        case 'auth/too-many-requests':
-          errorMessage = 'Too many attempts. Try again later';
-          break;
-        case 'auth/network-request-failed':
-          errorMessage = 'Network error. Check your connection';
-          break;
+
+      const signInAttempt = await signIn.create({
+        identifier: email,
+        password,
+      });
+
+      if (signInAttempt.status === 'complete') {
+        await setActive({ session: signInAttempt.createdSessionId });
+        router.replace('/(main)/scan');
+      } else {
+        console.error(JSON.stringify(signInAttempt, null, 2));
+        setError('Sign in incomplete. Please try again.');
       }
-      setError(errorMessage);
+    } catch (err: any) {
+      console.error(JSON.stringify(err, null, 2));
+      const message = err.errors?.[0]?.longMessage || err.errors?.[0]?.message || 'Login failed. Please try again.';
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -70,7 +53,7 @@ export default function LoginScreen() {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
+      <ScrollView contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}>
         <View style={styles.logoContainer}>
           <Image
             source={require('../../assets/icons/app-logo.png')}
@@ -92,7 +75,7 @@ export default function LoginScreen() {
             style={styles.input}
             left={<TextInput.Icon icon="email" />}
           />
-          
+
           <TextInput
             label="Password"
             value={password}
@@ -108,9 +91,9 @@ export default function LoginScreen() {
               />
             }
           />
-          
+
           {error ? <HelperText type="error">{error}</HelperText> : null}
-          
+
           <Button
             mode="contained"
             onPress={handleLogin}
@@ -120,17 +103,17 @@ export default function LoginScreen() {
           >
             Sign In
           </Button>
-          
+
           <TouchableOpacity
-            onPress={() => router.push('/password-reset')}
+            onPress={() => router.push('/(auth)/password-reset')}
             style={styles.forgotPasswordContainer}
           >
             <Text style={styles.forgotPassword}>Forgot Password?</Text>
           </TouchableOpacity>
-          
+
           <View style={styles.registerContainer}>
             <Text>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => router.push('/register')}>
+            <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
               <Text style={styles.registerText}>Sign Up</Text>
             </TouchableOpacity>
           </View>
@@ -144,7 +127,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    justifyContent: 'center',
     backgroundColor: '#ffffff',
   },
   logoContainer: {
@@ -193,5 +175,3 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
-

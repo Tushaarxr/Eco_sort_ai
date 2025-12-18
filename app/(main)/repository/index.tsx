@@ -12,6 +12,8 @@ const HARDCODED_ITEMS: EWasteItem[] = [
     name: 'iPhone',
     description: 'Apple smartphone with lithium battery and glass screen.',
     category: 'Smartphones',
+    categoryId: 'smartphones',
+    keywords: ['iphone', 'apple', 'smartphone', 'mobile'],
     materials: ['Glass', 'Aluminum', 'Lithium Battery', 'Circuit Board'],
     hazardLevel: 'Medium',
     disposalInstructions: [
@@ -27,6 +29,8 @@ const HARDCODED_ITEMS: EWasteItem[] = [
     name: 'Laptop',
     description: 'Portable computer with screen, keyboard, and internal components.',
     category: 'Computers',
+    categoryId: 'computers',
+    keywords: ['laptop', 'computer', 'pc', 'notebook'],
     materials: ['Plastic', 'Aluminum', 'Lithium Battery', 'Circuit Board', 'LCD Screen'],
     hazardLevel: 'Medium',
     disposalInstructions: [
@@ -42,6 +46,8 @@ const HARDCODED_ITEMS: EWasteItem[] = [
     name: 'Lithium-Ion Battery',
     description: 'Rechargeable battery used in portable electronics and electric vehicles.',
     category: 'Batteries',
+    categoryId: 'batteries',
+    keywords: ['battery', 'lithium', 'power'],
     materials: ['Lithium', 'Cobalt', 'Nickel', 'Plastic'],
     hazardLevel: 'High',
     disposalInstructions: [
@@ -57,6 +63,8 @@ const HARDCODED_ITEMS: EWasteItem[] = [
     name: 'Refrigerator',
     description: 'Large appliance for cooling and preserving food.',
     category: 'Appliances',
+    categoryId: 'appliances',
+    keywords: ['refrigerator', 'fridge', 'appliance', 'cooling'],
     materials: ['Metal', 'Plastic', 'Refrigerant Chemicals', 'Insulation', 'Copper'],
     hazardLevel: 'High',
     disposalInstructions: [
@@ -72,6 +80,8 @@ const HARDCODED_ITEMS: EWasteItem[] = [
     name: 'USB Cables',
     description: 'Cables used to connect and charge electronic devices.',
     category: 'Cables',
+    categoryId: 'cables',
+    keywords: ['usb', 'cable', 'wire', 'charger'],
     materials: ['Copper', 'Plastic', 'Rubber', 'Gold Plating'],
     hazardLevel: 'Low',
     disposalInstructions: [

@@ -1,19 +1,25 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Redirect, Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useAuth } from '../../src/hooks/useAuth';
+import { useAuth } from '@clerk/clerk-expo';
 import { COLORS } from '../../src/styles/colors';
+import { ActivityIndicator, View } from 'react-native';
 
 export default function MainLayout() {
-  const { user, loading } = useAuth();
+  const { isSignedIn, isLoaded } = useAuth();
 
-  // Check if user is authenticated
-  if (!loading && !user) {
-    return <Redirect href="/login" />;
+  // Show loading while Clerk is initializing
+  if (!isLoaded) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
   }
 
-  if (loading) {
-    return null; // Or a loading screen
+  // Redirect to login if not signed in
+  if (!isSignedIn) {
+    return <Redirect href="/(auth)/login" />;
   }
 
   return (
@@ -55,7 +61,7 @@ export default function MainLayout() {
         }}
       />
       <Tabs.Screen
-        name="profile/index"
+        name="profile"
         options={{
           title: 'Profile',
           tabBarLabel: 'Profile',
