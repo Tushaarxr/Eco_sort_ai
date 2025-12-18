@@ -29,10 +29,40 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# Environment files - CRITICAL: Never commit secrets!
+.env
+.env.local
+.env.development
+.env.development.local
+.env.test
+.env.test.local
+.env.production
+.env.production.local
 .env*.local
 
 # typescript
 *.tsbuildinfo
+
+# Test files
+test*.js
+*.test.js
+*.spec.js
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+logs/
+*.log
+
+# Build artifacts
+build/
+*.orig
+
+# Crash dumps
+*.stackdump
 
 app-example
