@@ -27,13 +27,12 @@ export default function MainLayout() {
       screenOptions={{
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: 'gray',
-        headerShown: true,
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="scan"
         options={{
-          title: 'Scan',
           tabBarLabel: 'Scan',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="camera" color={color} size={size} />
@@ -43,7 +42,6 @@ export default function MainLayout() {
       <Tabs.Screen
         name="repository"
         options={{
-          title: 'Repository',
           tabBarLabel: 'Repository',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="database-search" color={color} size={size} />
@@ -53,7 +51,6 @@ export default function MainLayout() {
       <Tabs.Screen
         name="recycling-centers/index"
         options={{
-          title: 'Recycling Centers',
           tabBarLabel: 'Recycling',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="recycle-variant" color={color} size={size} />
@@ -63,7 +60,6 @@ export default function MainLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
           tabBarLabel: 'Profile',
           tabBarIcon: ({ color, size }) => (
             <MaterialCommunityIcons name="account-outline" color={color} size={size} />

@@ -223,3 +223,152 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
 function toRad(deg: number): number {
     return deg * (Math.PI / 180);
 }
+
+// ===========================================
+// E-WASTE ITEMS (Repository)
+// ===========================================
+
+export interface EWasteItemDB {
+    id: string;
+    name: string;
+    description: string;
+    category: string;
+    categoryId: string;
+    keywords: string[];
+    materials: string[];
+    hazardLevel: string;
+    disposalInstructions: string[];
+    imageUrl: string;
+}
+
+/**
+ * Get all e-waste items from the database
+ */
+export const getEWasteItems = async (searchQuery?: string): Promise<EWasteItemDB[]> => {
+    if (!supabaseClient) {
+        console.warn('Supabase not configured');
+        return [];
+    }
+
+    try {
+        let query = supabaseClient
+            .from('ewaste_items')
+            .select('*')
+            .order('category', { ascending: true });
+
+        const { data, error } = await query;
+
+        if (error) {
+            console.warn('Fetch e-waste items warning:', error.message);
+            return [];
+        }
+
+        let items = (data || []).map((row: any) => ({
+            id: row.id,
+            name: row.name,
+            description: row.description || '',
+            category: row.category,
+            categoryId: row.category_id || row.category?.toLowerCase().replace(/\s+/g, '_'),
+            keywords: row.keywords || [],
+            materials: row.materials || [],
+            hazardLevel: row.hazard_level || 'medium',
+            disposalInstructions: row.disposal_instructions || [],
+            imageUrl: row.image_url || ''
+        }));
+
+        // Client-side filtering for search
+        if (searchQuery && searchQuery.trim().length > 0) {
+            const query = searchQuery.toLowerCase();
+            items = items.filter(item =>
+                item.name.toLowerCase().includes(query) ||
+                item.description.toLowerCase().includes(query) ||
+                item.category.toLowerCase().includes(query) ||
+                item.keywords.some((k: string) => k.toLowerCase().includes(query)) ||
+                item.materials.some((m: string) => m.toLowerCase().includes(query))
+            );
+        }
+
+        return items;
+    } catch (error: any) {
+        console.warn('Fetch e-waste items error:', error.message);
+        return [];
+    }
+};
+
+/**
+ * Get distinct categories from e-waste items
+ */
+export const getEWasteCategories = async (): Promise<{ id: string; name: string; count: number }[]> => {
+    if (!supabaseClient) {
+        return [];
+    }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('ewaste_items')
+            .select('category, category_id');
+
+        if (error) {
+            console.warn('Fetch categories warning:', error.message);
+            return [];
+        }
+
+        // Group by category and count
+        const categoryMap = new Map<string, { id: string; name: string; count: number }>();
+
+        (data || []).forEach((row: any) => {
+            const name = row.category;
+            const id = row.category_id || name.toLowerCase().replace(/\s+/g, '_');
+
+            if (categoryMap.has(name)) {
+                categoryMap.get(name)!.count++;
+            } else {
+                categoryMap.set(name, { id, name, count: 1 });
+            }
+        });
+
+        return Array.from(categoryMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+    } catch (error: any) {
+        console.warn('Fetch categories error:', error.message);
+        return [];
+    }
+};
+
+/**
+ * Get e-waste items by category
+ */
+export const getEWasteItemsByCategory = async (categoryId: string): Promise<EWasteItemDB[]> => {
+    if (!supabaseClient) {
+        return [];
+    }
+
+    try {
+        const { data, error } = await supabaseClient
+            .from('ewaste_items')
+            .select('*')
+            .or(`category_id.eq.${categoryId},category.ilike.%${categoryId.replace(/_/g, ' ')}%`)
+            .order('name', { ascending: true });
+
+        if (error) {
+            console.warn('Fetch items by category warning:', error.message);
+            return [];
+        }
+
+        return (data || []).map((row: any) => ({
+            id: row.id,
+            name: row.name,
+            description: row.description || '',
+            category: row.category,
+            categoryId: row.category_id || row.category?.toLowerCase().replace(/\s+/g, '_'),
+            keywords: row.keywords || [],
+            materials: row.materials || [],
+            hazardLevel: row.hazard_level || 'medium',
+            disposalInstructions: row.disposal_instructions || [],
+            imageUrl: row.image_url || ''
+        }));
+    } catch (error: any) {
+        console.warn('Fetch by category error:', error.message);
+        return [];
+    }
+};
+

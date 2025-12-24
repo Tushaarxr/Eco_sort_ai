@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Image, ScrollView, ActivityIndicator } from 'react-native';
-import { Text, Chip, Button, Card } from 'react-native-paper';
+import { View, StyleSheet, Image, ScrollView, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { Text } from 'react-native-paper';
 import { useLocalSearchParams, router } from 'expo-router';
 import { uploadImage, saveScanResult } from '../../../src/api/supabaseService';
 import { useAuth } from '@clerk/clerk-expo';
 import { useSupabase } from '../../../src/hooks/useSupabase';
 import { COLORS } from '../../../src/styles/colors';
 import { ScanResult } from '../../../src/types';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export default function ResultScreen() {
   const { imageUri, analysisResult: analysisParam } = useLocalSearchParams<{
@@ -18,11 +19,11 @@ export default function ResultScreen() {
 
   const hasSavedRef = useRef(false);
 
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<ScanResult | null>(null);
-  const [savingToHistory, setSavingToHistory] = useState<boolean>(false);
-  const [savedSuccessfully, setSavedSuccessfully] = useState<boolean>(false);
+  const [savingToHistory, setSavingToHistory] = useState(false);
+  const [savedSuccessfully, setSavedSuccessfully] = useState(false);
 
   useEffect(() => {
     const loadResults = async () => {
@@ -43,7 +44,6 @@ export default function ResultScreen() {
         setAnalysisResult(parsedResult);
         setLoading(false);
 
-        // Only save e-waste items to history
         if (userId && !parsedResult.saved && !hasSavedRef.current && parsedResult.isEWaste !== false) {
           hasSavedRef.current = true;
           setSavingToHistory(true);
@@ -53,14 +53,13 @@ export default function ResultScreen() {
             await saveScanResult(supabaseClient, userId, { ...parsedResult, imageUrl, saved: true });
             setSavedSuccessfully(true);
           } catch (saveError) {
-            console.error('Error saving to history:', saveError);
+            console.error('Error saving:', saveError);
           } finally {
             setSavingToHistory(false);
           }
         }
       } catch (parseError) {
-        console.error('Error parsing analysis result:', parseError);
-        setError('Failed to load analysis results');
+        setError('Failed to load results');
         setLoading(false);
       }
     };
@@ -68,182 +67,156 @@ export default function ResultScreen() {
     loadResults();
   }, [imageUri, analysisParam, userId]);
 
-  const getHazardColor = (level: string | undefined) => {
+  const getHazardStyle = (level: string | undefined) => {
     switch (level?.toLowerCase()) {
-      case 'low': return '#4CAF50';
-      case 'medium': return '#FF9800';
-      case 'high': return '#F44336';
-      default: return '#9E9E9E';
+      case 'low': return { bg: '#E8F5E9', color: '#2E7D32', icon: 'shield-check' };
+      case 'medium': return { bg: '#FFF3E0', color: '#E65100', icon: 'alert-circle' };
+      case 'high': return { bg: '#FFEBEE', color: '#C62828', icon: 'alert' };
+      default: return { bg: '#F5F5F5', color: '#666', icon: 'help-circle' };
     }
   };
 
   const isEWaste = analysisResult?.isEWaste !== false;
 
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+        <Text style={styles.loadingText}>Loading results...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.errorContainer}>
+        <MaterialCommunityIcons name="alert-circle-outline" size={48} color="#CCC" />
+        <Text style={styles.errorText}>{error}</Text>
+        <TouchableOpacity style={styles.retryBtn} onPress={() => router.back()}>
+          <Text style={styles.retryBtnText}>Try Again</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   return (
-    <ScrollView style={styles.container}>
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.loadingText}>Loading analysis results...</Text>
-        </View>
-      ) : error ? (
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>{error}</Text>
-          <Button mode="contained" onPress={() => router.back()} style={styles.tryAgainButton}>
-            Try Again
-          </Button>
-        </View>
-      ) : (
-        <>
-          <Image source={{ uri: imageUri }} style={styles.image} />
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Image */}
+      <Image source={{ uri: imageUri }} style={styles.image} />
 
-          <View style={styles.resultContainer}>
-            {/* Fun Message for Non-E-Waste */}
-            {!isEWaste && analysisResult?.funMessage && (
-              <Card style={styles.funCard}>
-                <Card.Content>
-                  <Text style={styles.funEmoji}>🤖</Text>
-                  <Text style={styles.funMessage}>{analysisResult.funMessage}</Text>
-                  <Text style={styles.funSubtext}>
-                    Detected: {analysisResult.itemType}
-                  </Text>
-                </Card.Content>
-              </Card>
-            )}
-
-            {/* E-Waste Analysis Results */}
-            {isEWaste && (
-              <>
-                <Text style={styles.title}>Analysis Results</Text>
-
-                {/* Item Type */}
-                <Card style={styles.card}>
-                  <Card.Content>
-                    <Text style={styles.cardTitle}>Identified Item</Text>
-                    <Text style={styles.itemType}>
-                      {analysisResult?.itemType || 'Unknown Device'}
-                    </Text>
-                  </Card.Content>
-                </Card>
-
-                {/* Materials */}
-                {analysisResult?.materials && analysisResult.materials.length > 0 && (
-                  <Card style={styles.card}>
-                    <Card.Content>
-                      <Text style={styles.cardTitle}>Materials</Text>
-                      <View style={styles.materialsContainer}>
-                        {analysisResult.materials.map((material, index) => (
-                          <Chip key={index} style={styles.materialChip} textStyle={styles.chipText}>
-                            {material}
-                          </Chip>
-                        ))}
-                      </View>
-                    </Card.Content>
-                  </Card>
-                )}
-
-                {/* Hazard Level */}
-                <Card style={styles.card}>
-                  <Card.Content>
-                    <Text style={styles.cardTitle}>Hazard Level</Text>
-                    <View style={styles.hazardContainer}>
-                      <View
-                        style={[
-                          styles.hazardIndicator,
-                          { backgroundColor: getHazardColor(analysisResult?.hazardLevel) }
-                        ]}
-                      />
-                      <Text style={[styles.hazardText, { color: getHazardColor(analysisResult?.hazardLevel) }]}>
-                        {analysisResult?.hazardLevel?.toUpperCase() || 'UNKNOWN'}
-                      </Text>
-                    </View>
-                  </Card.Content>
-                </Card>
-
-                {/* Disposal Method */}
-                <Card style={styles.card}>
-                  <Card.Content>
-                    <Text style={styles.cardTitle}>Disposal Recommendation</Text>
-                    <Text style={styles.disposalText}>
-                      {analysisResult?.disposalMethod || 'Take to a certified e-waste recycling center.'}
-                    </Text>
-                  </Card.Content>
-                </Card>
-
-                {/* Recycling Value */}
-                {analysisResult?.recyclingValue && (
-                  <Card style={styles.card}>
-                    <Card.Content>
-                      <Text style={styles.cardTitle}>♻️ Recycling Value</Text>
-                      <Text style={styles.disposalText}>
-                        {analysisResult.recyclingValue}
-                      </Text>
-                    </Card.Content>
-                  </Card>
-                )}
-
-                {/* Data Security Risk Warning */}
-                {analysisResult?.dataSecurityRisk && (
-                  <Card style={[styles.card, styles.securityCard]}>
-                    <Card.Content>
-                      <Text style={styles.securityTitle}>🔒 Data Security Risk</Text>
-                      <Text style={styles.securityText}>
-                        This device may contain personal data. Ensure all data is securely wiped before disposal.
-                      </Text>
-                    </Card.Content>
-                  </Card>
-                )}
-
-                {/* Confidence Warning */}
-                {analysisResult?.confidence === 'low' && (
-                  <Card style={[styles.card, styles.warningCard]}>
-                    <Card.Content>
-                      <Text style={styles.warningText}>
-                        ⚠️ Low confidence analysis. Results may not be accurate.
-                      </Text>
-                    </Card.Content>
-                  </Card>
-                )}
-
-                {/* Save Status */}
-                {savingToHistory && (
-                  <View style={styles.savingContainer}>
-                    <ActivityIndicator size="small" color={COLORS.primary} />
-                    <Text style={styles.savingText}>Saving to your history...</Text>
-                  </View>
-                )}
-
-                {savedSuccessfully && (
-                  <View style={styles.savedContainer}>
-                    <Text style={styles.savedText}>✓ Saved to your scan history</Text>
-                  </View>
-                )}
-
-                <Button
-                  mode="contained"
-                  onPress={() => router.push({
-                    pathname: '/(main)/recycling-centers',
-                    params: { itemType: analysisResult?.itemType || 'electronics' }
-                  })}
-                  style={styles.guideButton}
-                  icon="recycle"
-                >
-                  Find Recycling Centers
-                </Button>
-              </>
-            )}
-
-            <Button
-              mode="outlined"
-              onPress={() => router.back()}
-              style={styles.scanAgainButton}
-              icon="camera"
-            >
-              Scan Another Item
-            </Button>
+      <View style={styles.content}>
+        {/* Non E-Waste Fun Message */}
+        {!isEWaste && analysisResult?.funMessage && (
+          <View style={styles.funBox}>
+            <Text style={styles.funEmoji}>🤖</Text>
+            <Text style={styles.funMessage}>{analysisResult.funMessage}</Text>
+            <Text style={styles.funDetected}>Detected: {analysisResult.itemType}</Text>
           </View>
-        </>
-      )}
+        )}
+
+        {/* E-Waste Results */}
+        {isEWaste && (
+          <>
+            {/* Item Name */}
+            <View style={styles.itemHeader}>
+              <Text style={styles.itemName}>{analysisResult?.itemType || 'Unknown Device'}</Text>
+              {savedSuccessfully && (
+                <View style={styles.savedBadge}>
+                  <MaterialCommunityIcons name="check" size={12} color="#4CAF50" />
+                  <Text style={styles.savedBadgeText}>Saved</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Hazard Level */}
+            {analysisResult?.hazardLevel && (
+              <View style={[styles.section, styles.hazardSection, { backgroundColor: getHazardStyle(analysisResult.hazardLevel).bg }]}>
+                <MaterialCommunityIcons
+                  name={getHazardStyle(analysisResult.hazardLevel).icon as any}
+                  size={20}
+                  color={getHazardStyle(analysisResult.hazardLevel).color}
+                />
+                <Text style={[styles.hazardText, { color: getHazardStyle(analysisResult.hazardLevel).color }]}>
+                  {analysisResult.hazardLevel} Hazard
+                </Text>
+              </View>
+            )}
+
+            {/* Materials */}
+            {analysisResult?.materials && analysisResult.materials.length > 0 && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Materials</Text>
+                <View style={styles.chipsRow}>
+                  {analysisResult.materials.map((m, i) => (
+                    <View key={i} style={styles.chip}>
+                      <Text style={styles.chipText}>{m}</Text>
+                    </View>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Disposal */}
+            {analysisResult?.disposalMethod && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Disposal</Text>
+                <Text style={styles.sectionText}>{analysisResult.disposalMethod}</Text>
+              </View>
+            )}
+
+            {/* Recycling Value */}
+            {analysisResult?.recyclingValue && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Recycling Value</Text>
+                <Text style={styles.sectionText}>{analysisResult.recyclingValue}</Text>
+              </View>
+            )}
+
+            {/* Data Security Warning */}
+            {analysisResult?.dataSecurityRisk && (
+              <View style={[styles.section, styles.warningBox]}>
+                <MaterialCommunityIcons name="lock" size={18} color="#C62828" />
+                <Text style={styles.warningText}>
+                  Contains personal data. Wipe before disposal.
+                </Text>
+              </View>
+            )}
+
+            {/* Low Confidence Warning */}
+            {analysisResult?.confidence === 'low' && (
+              <View style={[styles.section, styles.cautionBox]}>
+                <Text style={styles.cautionText}>⚠️ Low confidence analysis</Text>
+              </View>
+            )}
+
+            {/* Saving Indicator */}
+            {savingToHistory && (
+              <View style={styles.savingRow}>
+                <ActivityIndicator size="small" color={COLORS.primary} />
+                <Text style={styles.savingText}>Saving...</Text>
+              </View>
+            )}
+          </>
+        )}
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          {isEWaste && (
+            <TouchableOpacity
+              style={styles.primaryBtn}
+              onPress={() => router.push('/(main)/recycling-centers')}
+            >
+              <MaterialCommunityIcons name="map-marker" size={20} color="#fff" />
+              <Text style={styles.primaryBtnText}>Find Recycling Centers</Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.back()}>
+            <MaterialCommunityIcons name="camera" size={18} color={COLORS.primary} />
+            <Text style={styles.secondaryBtnText}>Scan Another</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
     </ScrollView>
   );
 }
@@ -251,161 +224,210 @@ export default function ResultScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#FAFAFA',
   },
   loadingContainer: {
-    padding: 40,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: '#FAFAFA',
   },
   loadingText: {
-    marginTop: 16,
-    fontSize: 18,
-    fontWeight: '600',
+    marginTop: 12,
+    fontSize: 15,
+    color: '#666',
   },
   errorContainer: {
-    padding: 40,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    padding: 24,
+    backgroundColor: '#FAFAFA',
+    gap: 16,
   },
   errorText: {
     fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#F44336',
+    color: '#666',
   },
-  tryAgainButton: {
-    marginTop: 16,
+  retryBtn: {
+    backgroundColor: COLORS.primary,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 10,
+  },
+  retryBtnText: {
+    color: '#fff',
+    fontWeight: '600',
   },
   image: {
     width: '100%',
-    height: 250,
-    resizeMode: 'cover',
+    height: 220,
+    backgroundColor: '#E0E0E0',
   },
-  resultContainer: {
-    padding: 16,
+  content: {
+    padding: 20,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 16,
-    color: COLORS.primary,
-  },
-  // Fun message styles
-  funCard: {
-    marginBottom: 16,
+  // Non e-waste
+  funBox: {
     backgroundColor: '#FFF8E1',
-    elevation: 3,
+    padding: 24,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 20,
   },
   funEmoji: {
     fontSize: 48,
-    textAlign: 'center',
     marginBottom: 12,
   },
   funMessage: {
-    fontSize: 18,
+    fontSize: 16,
     textAlign: 'center',
     color: '#333',
-    lineHeight: 26,
-    marginBottom: 12,
+    lineHeight: 24,
   },
-  funSubtext: {
-    fontSize: 14,
-    textAlign: 'center',
-    color: '#666',
+  funDetected: {
+    fontSize: 13,
+    color: '#888',
+    marginTop: 12,
     fontStyle: 'italic',
   },
-  // Regular card styles
-  card: {
-    marginBottom: 12,
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  itemType: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  materialsContainer: {
+  // E-waste results
+  itemHeader: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 6,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
   },
-  materialChip: {
-    marginBottom: 4,
+  itemName: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    flex: 1,
   },
-  chipText: {
+  savedBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#E8F5E9',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  savedBadgeText: {
     fontSize: 12,
-  },
-  hazardContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  hazardIndicator: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    marginRight: 8,
-  },
-  hazardText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  disposalText: {
-    fontSize: 15,
-    lineHeight: 24,
-    color: '#333',
-  },
-  securityCard: {
-    backgroundColor: '#FFEBEE',
-  },
-  securityTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#C62828',
-    marginBottom: 8,
-  },
-  securityText: {
-    fontSize: 14,
-    color: '#C62828',
-  },
-  warningCard: {
-    backgroundColor: '#FFF3E0',
-  },
-  warningText: {
-    color: '#E65100',
-    fontSize: 14,
-  },
-  savingContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-  },
-  savingText: {
-    marginLeft: 8,
-    fontSize: 14,
-    color: '#666',
-  },
-  savedContainer: {
-    alignItems: 'center',
-    paddingVertical: 8,
-  },
-  savedText: {
-    fontSize: 14,
     color: '#4CAF50',
     fontWeight: '500',
   },
-  guideButton: {
-    marginTop: 16,
+  section: {
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#F0F0F0',
   },
-  scanAgainButton: {
-    marginBottom: 24,
+  hazardSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    borderWidth: 0,
+  },
+  hazardText: {
+    fontSize: 15,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+  },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#888',
+    marginBottom: 8,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionText: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: '#333',
+  },
+  chipsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chip: {
+    backgroundColor: '#F5F5F5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  chipText: {
+    fontSize: 13,
+    color: '#555',
+  },
+  warningBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#FFEBEE',
+    borderColor: '#FFCDD2',
+  },
+  warningText: {
+    flex: 1,
+    fontSize: 13,
+    color: '#C62828',
+  },
+  cautionBox: {
+    backgroundColor: '#FFF3E0',
+    borderColor: '#FFE0B2',
+  },
+  cautionText: {
+    fontSize: 13,
+    color: '#E65100',
+  },
+  savingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 8,
+  },
+  savingText: {
+    fontSize: 13,
+    color: '#888',
+  },
+  actions: {
+    marginTop: 12,
+    gap: 12,
+  },
+  primaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 10,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  primaryBtnText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#fff',
+  },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: '#fff',
+    paddingVertical: 14,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+  },
+  secondaryBtnText: {
+    fontSize: 15,
+    fontWeight: '500',
+    color: '#333',
   },
 });

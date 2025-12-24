@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, RefreshControl, SafeAreaView, StatusBar } from 'react-native';
 import { Text, Card, Button, Avatar, Divider, ActivityIndicator, List, IconButton, TextInput, Portal, Modal } from 'react-native-paper';
 import { router } from 'expo-router';
 import { useAuth, useUser, useClerk } from '@clerk/clerk-expo';
@@ -171,15 +171,19 @@ export default function ProfileScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={styles.loadingText}>Loading profile...</Text>
-      </View>
+      <SafeAreaView style={styles.safeArea}>
+        <StatusBar barStyle="dark-content" />
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Loading profile...</Text>
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" />
       <ScrollView
         style={styles.container}
         refreshControl={
@@ -391,20 +395,22 @@ export default function ProfileScreen() {
           </View>
         </Modal>
       </Portal>
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+  },
+  container: {
+    flex: 1,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
   },
   loadingText: {
     marginTop: 12,
