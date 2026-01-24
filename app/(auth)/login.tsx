@@ -1,19 +1,33 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { View, StyleSheet, TouchableOpacity, Image, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, SafeAreaView, StatusBar } from 'react-native';
 import { TextInput, Button, Text, HelperText } from 'react-native-paper';
 import { useRouter } from 'expo-router';
-import { useSignIn, useOAuth } from '@clerk/clerk-expo';
+import { useSignIn, useOAuth, useAuth } from '@clerk/clerk-expo';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { COLORS } from '../../src/styles/colors';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Warm up the browser for faster OAuth
+// Warm up the browser for faster OAuth - MUST be called at module level
 WebBrowser.maybeCompleteAuthSession();
 
+// Custom hook for warming up browser
+const useWarmUpBrowser = () => {
+  useEffect(() => {
+    // Warm up browser on Android for faster OAuth
+    void WebBrowser.warmUpAsync();
+    return () => {
+      void WebBrowser.coolDownAsync();
+    };
+  }, []);
+};
+
 export default function LoginScreen() {
+  // Warm up browser for OAuth
+  useWarmUpBrowser();
+
   const { signIn, setActive, isLoaded } = useSignIn();
   const { startOAuthFlow } = useOAuth({ strategy: 'oauth_google' });
+  const { isSignedIn } = useAuth();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
@@ -22,6 +36,13 @@ export default function LoginScreen() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
   const [secureTextEntry, setSecureTextEntry] = useState(true);
+
+  // Redirect if already signed in
+  useEffect(() => {
+    if (isSignedIn) {
+      router.replace('/(main)/scan');
+    }
+  }, [isSignedIn]);
 
   const handleLogin = async () => {
     if (!isLoaded) return;
@@ -59,17 +80,109 @@ export default function LoginScreen() {
       setGoogleLoading(true);
       setError('');
 
-      const { createdSessionId, setActive: setOAuthActive } = await startOAuthFlow({
-        redirectUrl: Linking.createURL('/(main)/scan', { scheme: 'myapp' }),
+      // Create the OAuth redirect URL using the app scheme
+      const redirectUrl = Linking.createURL('/');
+      console.log('OAuth redirect URL:', redirectUrl);
+
+      const result = await startOAuthFlow({
+        redirectUrl,
       });
 
+      console.log('OAuth result:', JSON.stringify(result, null, 2));
+
+      const { createdSessionId, signIn: oAuthSignIn, signUp: oAuthSignUp, setActive: setOAuthActive } = result;
+
+      // If we have a created session, set it as active
       if (createdSessionId && setOAuthActive) {
         await setOAuthActive({ session: createdSessionId });
+        console.log('Session activated, redirecting...');
         router.replace('/(main)/scan');
+        return;
       }
+
+      // If sign up has missing requirements (like username), complete it
+      if (oAuthSignUp && oAuthSignUp.status === 'missing_requirements') {
+        console.log('Sign up missing requirements:', oAuthSignUp.missingFields);
+
+        // Check if username is the missing field
+        if (oAuthSignUp.missingFields?.includes('username')) {
+          // Generate a unique username from email or name
+          const emailBase = oAuthSignUp.emailAddress?.split('@')[0] || '';
+          const randomSuffix = Math.floor(Math.random() * 10000);
+          const generatedUsername = `${emailBase}${randomSuffix}`.toLowerCase().replace(/[^a-z0-9_]/g, '');
+
+          console.log('Auto-generating username:', generatedUsername);
+
+          try {
+            // Update the sign-up with the generated username
+            const updatedSignUp = await oAuthSignUp.update({
+              username: generatedUsername,
+            });
+
+            console.log('Sign up updated, status:', updatedSignUp.status);
+
+            // If complete now, set session active
+            if (updatedSignUp.status === 'complete' && updatedSignUp.createdSessionId) {
+              await setOAuthActive?.({ session: updatedSignUp.createdSessionId });
+              router.replace('/(main)/scan');
+              return;
+            }
+          } catch (updateError: any) {
+            console.error('Error updating sign-up:', updateError);
+            // If username generation failed, ask user to register normally
+            setError('Please complete registration with email.');
+            return;
+          }
+        }
+      }
+
+      // If sign up is complete (new user)
+      if (oAuthSignUp && oAuthSignUp.status === 'complete' && oAuthSignUp.createdSessionId) {
+        await setOAuthActive?.({ session: oAuthSignUp.createdSessionId });
+        router.replace('/(main)/scan');
+        return;
+      }
+
+      // If sign in is complete (existing user)
+      if (oAuthSignIn && oAuthSignIn.status === 'complete' && oAuthSignIn.createdSessionId) {
+        await setOAuthActive?.({ session: oAuthSignIn.createdSessionId });
+        router.replace('/(main)/scan');
+        return;
+      }
+
+      // Check for transferable verification (user exists but needs to be linked)
+      if (oAuthSignIn?.firstFactorVerification?.status === 'transferable') {
+        console.log('Transferable verification - attempting to transfer to sign up');
+
+        try {
+          // Transfer the external account to sign up
+          const transferResult = await oAuthSignUp?.update({});
+          console.log('Transfer result:', transferResult?.status);
+
+          if (transferResult?.status === 'complete' && transferResult?.createdSessionId) {
+            await setOAuthActive?.({ session: transferResult.createdSessionId });
+            router.replace('/(main)/scan');
+            return;
+          }
+        } catch (transferError) {
+          console.error('Transfer error:', transferError);
+        }
+      }
+
+      // If we get here, something went wrong
+      console.log('OAuth flow did not complete.');
+      setError('Sign in was cancelled or incomplete. Please try again.');
+
     } catch (err: any) {
       console.error('Google OAuth error:', err);
-      setError('Google sign-in failed. Please try again.');
+      console.error('Error details:', JSON.stringify(err, null, 2));
+
+      // Handle specific error cases
+      if (err.message?.includes('cancelled') || err.message?.includes('dismissed')) {
+        setError('Sign in was cancelled.');
+      } else {
+        setError('Google sign-in failed. Please try again.');
+      }
     } finally {
       setGoogleLoading(false);
     }
